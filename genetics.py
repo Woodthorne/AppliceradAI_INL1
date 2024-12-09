@@ -69,7 +69,7 @@ class Evaluator:
     
     def _random_placement(self) -> int:
         probability = random.random()
-        if probability < 0.4:
+        if probability < 0.5:
             return random.randint(1, self.n_trucks)
         return 0
 
@@ -128,3 +128,35 @@ class Evaluator:
 if __name__ == '__main__':
     evaluator = Evaluator(Path('lagerstatus.csv'))
     evaluator.evaluate()
+
+    best_load = evaluator.loads[0]
+    best_load
+
+    load_array = np.array(best_load).reshape(len(best_load), -1)
+    merged_array = np.hstack((evaluator.data, load_array))
+
+    loaded_mask = (merged_array[:, 4] != 0)
+    remaining_mask = (merged_array[:, 4] == 0)
+    overdue_mask = (merged_array[:, 3] < 0)
+
+    total_packages = 0
+    for truck_id in range(1 + evaluator.n_trucks + 1):
+        truck_mask = (merged_array[:, 4] == truck_id)
+        truck_packages = merged_array[truck_mask, 1]
+        truck_weight = sum(merged_array)
+        total_packages += len(truck_packages)
+
+        message = f'Truck #{truck_id}: '
+        message += f'{truck_weight}/{TRUCK_CAPACITY} kgs loaded, '
+        message += f'{len(truck_packages)}x packages.'
+    
+    remaining_overdue = len(merged_array[overdue_mask & remaining_mask])
+    total_profit = sum(merged_array[loaded_mask, 2]) \
+            - sum([val ** 2 for val
+                   in merged_array[loaded_mask & overdue_mask, 3]]) \
+            - sum([val ** 2 for val
+                   in merged_array[remaining_mask & overdue_mask, 3]])
+        
+    print(f'{remaining_overdue}x overdue packages remaining.')
+    print(f'{total_profit} total daily profit.')
+    print(f'{total_packages}x packages loaded.')
