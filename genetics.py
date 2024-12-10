@@ -6,7 +6,7 @@ import numpy as np
 TRUCK_CAPACITY = 800
 
 class Evaluator:
-    def __init__(self, source: Path, n_trucks: int = 10, population_size: int = 100) -> None:
+    def __init__(self, source: Path, n_trucks: int = 10) -> None:
         file_data = np.genfromtxt(
             fname = source,
             delimiter = ',',
@@ -15,11 +15,17 @@ class Evaluator:
         )
         self.data = np.array(file_data.tolist())
         self.n_trucks = n_trucks
-        self.loads = [self._random_load() for _ in range(population_size)]
+        self.loads: list[list[int]] = []
     
-    def evaluate(self, generation_limit: int = 5000, vocal: bool = True) -> list[int]:
+    def evaluate(
+            self, population_size: int = 100,
+            generation_limit: int = 5000, vocal: bool = True
+    ) -> list[int]:
         current_fitness_score = 0
         generations_since_change = 0
+        
+        self.loads = [self._random_load()
+                      for _ in range(population_size)]
         generation = 1
 
         while True:
@@ -30,13 +36,13 @@ class Evaluator:
 
             self.loads.sort(key = self._score_load, reverse=True)
 
-            survivor_size = len(self.loads) // 10
-            new_loads = self.loads[:survivor_size]
+            legacy_size = len(self.loads) // 10
+            new_loads = self.loads[:legacy_size]
 
-            parent_size = len(self.loads) // 2
+            donor_size = len(self.loads) // 2
             while len(new_loads) < len(self.loads):
-                load_1 = random.choice(self.loads[:parent_size])
-                load_2 = random.choice(self.loads[:parent_size])
+                load_1 = random.choice(self.loads[:donor_size])
+                load_2 = random.choice(self.loads[:donor_size])
                 new_load = self._merge_loads(load_1, load_2)
                 new_loads.append(new_load)
             
@@ -62,9 +68,6 @@ class Evaluator:
     def _random_load(self) -> list[int]:
         load = [self._random_placement() for _ in range(len(self.data))]
         return load
-        # if self._verify_load(load):
-        #     return load
-        # return self._random_load()
     
     def _random_placement(self) -> int:
         probability = random.random()
@@ -119,9 +122,6 @@ class Evaluator:
             else:
                 new_load.append(self._random_placement())
         return new_load
-        # if self._verify_load(new_load):
-        #     return new_load
-        # return self._merge_loads(parent_1, parent_2)
 
 
 if __name__ == '__main__':
