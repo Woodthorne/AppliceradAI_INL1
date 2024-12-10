@@ -19,17 +19,17 @@ class Evaluator:
     
     def evaluate(
             self, population_size: int = 100,
-            generation_limit: int = 5000, vocal: bool = True
+            repetition_limit: int = 5000, vocal: bool = True
     ) -> list[int]:
-        current_fitness_score = 0
-        generations_since_change = 0
+        best_score = -500
+        repeated_scores = 0
         
         self.loads = [self._random_load()
                       for _ in range(population_size)]
         generation = 1
 
         while True:
-            if generations_since_change > generation_limit:
+            if repeated_scores > repetition_limit:
                 break
 
             generation += 1
@@ -48,13 +48,13 @@ class Evaluator:
             
             self.loads = new_loads
 
-            if current_fitness_score < self._score_load(self.loads[0]):
-                current_fitness_score = self._score_load(self.loads[0])
-                generations_since_change = 0
+            if best_score < self._score_load(self.loads[0]):
+                best_score = self._score_load(self.loads[0])
+                repeated_scores = 0
             else:
-                generations_since_change += 1
+                repeated_scores += 1
             
-            if generation % (generation_limit // 20) == 0 and vocal:
+            if generation % (repetition_limit // 20) == 0 and vocal:
                 message = f'Generation: {generation}, '
                 message += f'Best Score: {self._score_load(self.loads[0])}'
                 print(message)
