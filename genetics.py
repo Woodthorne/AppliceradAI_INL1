@@ -8,9 +8,7 @@ TRUCK_CAPACITY = 800
 
 
 class Evaluator:
-    def __init__(self,
-                 source: Path,
-                 n_trucks: int = 10, population_size: int = 100) -> None:
+    def __init__(self, source: Path, n_trucks: int = 10) -> None:
         file_data = np.genfromtxt(
             fname = source,
             delimiter = ',',
