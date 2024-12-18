@@ -19,41 +19,46 @@ class Evaluator:
         )
         self.data = np.array(file_data.tolist())
         self.n_trucks = n_trucks
-        self.loads = [self._random_load() for _ in range(population_size)]
+        self.loads: list[tuple[int]] = []
     
-    def evaluate(self,
-                 generation_limit: int = 5000, vocal: bool = True) -> None:
-        current_fitness_score = 0
-        generations_since_change = 0
+    def evaluate(
+            self, population_size: int = 100,
+            repetition_limit: int = 5000, vocal: bool = True
+    ) -> list[int]:
+        best_score = -500
+        repeated_scores = 0
+        
+        self.loads = [self._random_load()
+                      for _ in range(population_size)]
         generation = 1
 
         while True:
-            if generations_since_change > generation_limit:
+            if repeated_scores > repetition_limit:
                 break
 
             generation += 1
 
             self.loads.sort(key = self._score_load, reverse=True)
 
-            survivor_size = len(self.loads) // 10
-            new_loads = self.loads[:survivor_size]
+            legacy_size = len(self.loads) // 10
+            new_loads = self.loads[:legacy_size]
 
-            parent_size = len(self.loads) // 2
+            donor_size = len(self.loads) // 2
             while len(new_loads) < len(self.loads):
-                load_1 = random.choice(self.loads[:parent_size])
-                load_2 = random.choice(self.loads[:parent_size])
+                load_1 = random.choice(self.loads[:donor_size])
+                load_2 = random.choice(self.loads[:donor_size])
                 new_load = self._merge_loads(load_1, load_2)
                 new_loads.append(tuple(new_load))
             
             self.loads = new_loads
 
-            if current_fitness_score < self._score_load(self.loads[0]):
-                current_fitness_score = self._score_load(self.loads[0])
-                generations_since_change = 0
+            if best_score < self._score_load(self.loads[0]):
+                best_score = self._score_load(self.loads[0])
+                repeated_scores = 0
             else:
-                generations_since_change += 1
+                repeated_scores += 1
             
-            if generation % (generation_limit // 20) == 0 and vocal:
+            if generation % (repetition_limit // 20) == 0 and vocal:
                 message = f'Generation: {generation}, '
                 message += f'Best Score: {self._score_load(self.loads[0])}'
                 print(message)
@@ -146,7 +151,7 @@ if __name__ == '__main__':
 
         message = f'Truck #{truck_id}: '
         message += f'{truck_weight}/{TRUCK_CAPACITY} kgs loaded, '
-        message += f'{len(truck_packages)}x packages.'
+        message += f'{len(truck_packages)} packages.'
     
     remaining_overdue = len(merged_array[overdue_mask & remaining_mask])
     total_profit = sum(merged_array[loaded_mask, 2]) \
@@ -155,6 +160,6 @@ if __name__ == '__main__':
             - sum([val ** 2 for val
                    in merged_array[remaining_mask & overdue_mask, 3]])
         
-    print(f'{remaining_overdue}x overdue packages remaining.')
+    print(f'{remaining_overdue} overdue packages remaining.')
     print(f'{total_profit:2} total daily profit.')
     print(f'{total_packages} packages loaded.')
