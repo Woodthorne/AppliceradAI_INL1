@@ -1,13 +1,16 @@
 import random
+from functools import cache, lru_cache
 from pathlib import Path
-from collections import defaultdict
 
 import numpy as np
 
 TRUCK_CAPACITY = 800
 
+
 class Evaluator:
-    def __init__(self, source: Path, n_trucks: int = 10, population_size: int = 100) -> None:
+    def __init__(self,
+                 source: Path,
+                 n_trucks: int = 10, population_size: int = 100) -> None:
         file_data = np.genfromtxt(
             fname = source,
             delimiter = ',',
@@ -18,7 +21,8 @@ class Evaluator:
         self.n_trucks = n_trucks
         self.loads = [self._random_load() for _ in range(population_size)]
     
-    def evaluate(self, generation_limit: int = 5000, vocal: bool = True) -> list[int]:
+    def evaluate(self,
+                 generation_limit: int = 5000, vocal: bool = True) -> None:
         current_fitness_score = 0
         generations_since_change = 0
         generation = 1
@@ -39,7 +43,7 @@ class Evaluator:
                 load_1 = random.choice(self.loads[:parent_size])
                 load_2 = random.choice(self.loads[:parent_size])
                 new_load = self._merge_loads(load_1, load_2)
-                new_loads.append(new_load)
+                new_loads.append(tuple(new_load))
             
             self.loads = new_loads
 
@@ -59,21 +63,17 @@ class Evaluator:
         message += f'Best Score: {self._score_load(self.loads[0])}'
         print(message)
 
-
-    def _random_load(self) -> list[int]:
+    def _random_load(self) -> tuple[int]:
         load = [self._random_placement() for _ in range(len(self.data))]
-        return load
-        # if self._verify_load(load):
-        #     return load
-        # return self._random_load()
+        return tuple(load)
     
     def _random_placement(self) -> int:
         probability = random.random()
-        if probability < 0.5:
+        if probability < 0.4:
             return random.randint(1, self.n_trucks)
         return 0
 
-    def _verify_load(self, load: list[int]) -> bool:
+    def _verify_load(self, load: tuple[int]) -> bool:
         load_array = np.array(load).reshape(len(load), -1)
         merged_array = np.hstack((self.data, load_array))
         for truck_id in range(1, self.n_trucks + 1):
@@ -83,7 +83,8 @@ class Evaluator:
                 return False
         return True
     
-    def _score_load(self, load: list[int]) -> int:
+    @cache
+    def _score_load(self, load: tuple[int]) -> int:
         load_array = np.array(load).reshape(len(load), -1)
         merged_array = np.hstack((self.data, load_array))
 
@@ -109,7 +110,7 @@ class Evaluator:
         
         return score
 
-    def _merge_loads(self, parent_1: list[int], parent_2: list[int]) -> list[int]:
+    def _merge_loads(self, parent_1: tuple[int], parent_2: tuple[int]) -> tuple[int]:
         new_load = []
         for package_1, package_2 in zip(parent_1, parent_2):
             probability = random.random()
@@ -120,17 +121,14 @@ class Evaluator:
             else:
                 new_load.append(self._random_placement())
         return new_load
-        # if self._verify_load(new_load):
-        #     return new_load
-        # return self._merge_loads(parent_1, parent_2)
 
 
 if __name__ == '__main__':
     evaluator = Evaluator(Path('lagerstatus.csv'))
     evaluator.evaluate()
 
+    best_five_loads = evaluator.loads[:5]
     best_load = evaluator.loads[0]
-    best_load
 
     load_array = np.array(best_load).reshape(len(best_load), -1)
     merged_array = np.hstack((evaluator.data, load_array))
@@ -158,5 +156,5 @@ if __name__ == '__main__':
                    in merged_array[remaining_mask & overdue_mask, 3]])
         
     print(f'{remaining_overdue}x overdue packages remaining.')
-    print(f'{total_profit} total daily profit.')
-    print(f'{total_packages}x packages loaded.')
+    print(f'{total_profit:2} total daily profit.')
+    print(f'{total_packages} packages loaded.')
