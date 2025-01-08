@@ -1,5 +1,5 @@
 import random
-from functools import cache, lru_cache
+from functools import cache
 from pathlib import Path
 
 import numpy as np
@@ -49,10 +49,11 @@ class Evaluator:
             new_loads.extend([self._random_load() for _ in range(random_size)])
 
             donor_size = len(self.loads) // 2
+            randomness = repeated_scores / repetition_limit
             while len(new_loads) < len(self.loads):
                 load_1 = random.choice(self.loads[:donor_size])
                 load_2 = random.choice(self.loads[:donor_size])
-                new_load = self._merge_loads(load_1, load_2)
+                new_load = self._merge_loads(load_1, load_2, randomness)
                 new_loads.append(tuple(new_load))
             
             self.loads = new_loads
@@ -68,13 +69,28 @@ class Evaluator:
             
             if generation % (repetition_limit // 20) == 0 and vocal:
                 message = f'Generation: {generation}, '
-                message += f'Best Score: {new_score}'
+                message += f'Best Score: {best_score}'
+                message += f'Randomness: {randomness}'
                 print(message)
         
         message = 'Final result: '
         message += f'Generation: {generation}, '
         message += f'Best Score: {self._score_load(self.loads[0])}'
         print(message)
+
+    def _merge_loads(self, parent_1: tuple[int], parent_2: tuple[int], randomness: float = 0) -> tuple[int]:
+        new_load = []
+        inheritance_proportion = 0.5
+        inheritance_proportion = (1 - randomness) / 2
+        for package_1, package_2 in zip(parent_1, parent_2):
+            probability = random.random()
+            if probability < inheritance_proportion:
+                new_load.append(package_1)
+            elif probability < 2 * inheritance_proportion:
+                new_load.append(package_2)
+            else:
+                new_load.append(self._random_placement())
+        return new_load
 
     def _random_load(self) -> tuple[int]:
         load = [self._random_placement() for _ in range(len(self.data))]
@@ -164,7 +180,7 @@ if __name__ == '__main__':
     overdue_mask = (merged_array[:, 3] < 0)
 
     total_packages = 0
-    for truck_id in range(1,  evaluator.n_trucks + 1):
+    for truck_id in range(1, evaluator.n_trucks + 1):
         truck_mask = (merged_array[:, 4] == truck_id)
         truck_packages = merged_array[truck_mask, 1]
         truck_weight = sum(truck_packages)
