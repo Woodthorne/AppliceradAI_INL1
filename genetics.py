@@ -1,6 +1,5 @@
 import random
 from functools import cache
-from pathlib import Path
 
 import numpy as np
 
@@ -49,6 +48,8 @@ class Evaluator:
             self.population = new_population
 
             new_fitness = self._score_fitness(self.population[0])
+            if new_fitness > 0:
+                return generation
             if best_fitness < new_fitness:
                 if repeated_scores != 0 and (new_fitness - best_fitness) / repeated_scores < minimum_growth:
                     break
@@ -77,14 +78,14 @@ class Evaluator:
             elif probability < stability:
                 new_genome.append(gene_2)
             else:
-                new_genome.append(self._random_placement())
+                new_genome.append(self._random_gene())
         return tuple(new_genome)
     
     def _random_genome(self) -> tuple[int]:
-        genome = [self._random_placement() for _ in range(len(self.data))]
+        genome = [self._random_gene() for _ in range(len(self.data))]
         return tuple(genome)
     
-    def _random_placement(self) -> int:
+    def _random_gene(self) -> int:
         probability = random.random()
         # if probability < 0.1:
         if probability < self._total_capacity / self._total_weight:
