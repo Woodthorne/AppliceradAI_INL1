@@ -1,5 +1,7 @@
 import random
+from datetime import datetime
 from functools import cache
+from statistics import mean
 
 import numpy as np
 
@@ -13,21 +15,29 @@ class Evaluator:
         self._total_capacity = n_positions * position_capacity
         self.n_positions = n_positions
         self.population: list[tuple[int]] = []
+        self.best_fitness_scores: list[float] = []
     
     def evaluate(
             self, population_size: int = 100,
             repetition_limit: int = 5000,
             minimum_growth: float = 0.01,
+            max_minutes: int = 60,
             vocal: bool = True
     ) -> list[int]:
         
+        generation = 0
         self.population = [self._random_genome()
                            for _ in range(population_size)]
-        generation = 1
+        
+        self.best_fitness_scores = []
         best_fitness = self._score_fitness(self.population[0])
         repeated_scores = 0
+        
 
+        time_start = datetime.now()
+        cycle_times: list[float] = []
         while repeated_scores < repetition_limit:
+            cycle_start = datetime.now()
             generation += 1
 
             self.population.sort(key = self._score_fitness, reverse=True)
@@ -48,15 +58,25 @@ class Evaluator:
             self.population = new_population
 
             new_fitness = self._score_fitness(self.population[0])
-            if new_fitness > 0:
-                return generation
+            self.best_fitness_scores.append(new_fitness)
             if best_fitness < new_fitness:
-                if repeated_scores != 0 and (new_fitness - best_fitness) / repeated_scores < minimum_growth:
+                growth = new_fitness - best_fitness
+                if repeated_scores != 0 \
+                and growth / repeated_scores < minimum_growth:
+                    print('INTERRUPTED: Slow growth.')
                     break
                 best_fitness = new_fitness
                 repeated_scores = 0
             else:
                 repeated_scores += 1
+            
+            cycle_times.append((datetime.now() - cycle_start).total_seconds())
+            next_cycle_estimate = ((datetime.now() - time_start).total_seconds()
+                                   + mean(cycle_times)) / 60
+            if next_cycle_estimate > max_minutes:
+                if vocal:
+                    print('INTERRUPTED: Time limit reached.')
+                break
             
             if generation % (repetition_limit // 20) == 0 and vocal:
                 message = f'Generation: {generation}, '
@@ -87,7 +107,6 @@ class Evaluator:
     
     def _random_gene(self) -> int:
         probability = random.random()
-        # if probability < 0.1:
         if probability < self._total_capacity / self._total_weight:
             return random.randint(1, self.n_positions)
         return 0
@@ -98,11 +117,7 @@ class Evaluator:
         merged_array = np.hstack((self.data, load_array))
 
         loaded_mask = (merged_array[:, 4] != 0)
-        # remaining_mask = (merged_array[:, 4] == 0)
         overdue_mask = (merged_array[:, 3] < 0)
-
-        # loaded_packages = merged_array[loaded_mask]
-        # remaining_packages = merged_array[remaining_mask]
 
         score = sum([
             sum(merged_array[loaded_mask, 2]),                      # column "Förtjänst"
@@ -110,22 +125,6 @@ class Evaluator:
                 in merged_array[loaded_mask & overdue_mask, 3]),    #   if < 0
         ])
 
-            # -sum(deadline ** 2 for deadline 
-            #      in merged_array[remaining_mask & overdue_mask, 3])
-
-        # loaded_profit = sum(merged_array[loaded_mask, 2]) \
-        #     - sum([val ** 2 for val
-        #            in merged_array[loaded_mask & overdue_mask, 3]])
-        
-        # remaining_penalty = sum(
-        #     [val ** 2 for val
-        #      in merged_array[remaining_mask & overdue_mask, 3]])
-        
-        # remaining_packages = len(merged_array[remaining_mask])
-
-        # remaining_profit = sum(merged_array[remaining_mask, 2])
-
-        # score = sum([loaded_profit, -remaining_penalty])
         if not self._verify_genome(genome):
             score = -abs(score * 10_000)
         
