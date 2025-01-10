@@ -83,16 +83,10 @@ class Evaluator:
             legacy_size = len(self.population) // 10
             new_population = self.population[:legacy_size]
 
-            random_size = len(self.population) // 10
-            new_population.extend([self._random_genome() for _ in range(random_size)])
-
             donor_size = len(self.population) // 2
             stability = 1 - repeated_scores / repetition_limit
-            # stability = max(stability - decay_rate, decay_rate)
             while len(new_population) < len(self.population):
                 donors = random.sample(self.population[:donor_size], 2)
-                # donors = (random.choice(self.population[:legacy_size // 2]),
-                #           random.choice(self.population[legacy_size:donor_size]))
                 new_genome = self._combine_donors(donors, stability)
                 new_population.append(new_genome)
             
@@ -140,15 +134,13 @@ class Evaluator:
             return
         
         best_genome = self.population[0]
-        load_array = np.array(best_genome).reshape(len(best_genome), -1)
-        merged_array = np.hstack((self.data, load_array))
         delivery_folder = Path('deliveries/')
         if not delivery_folder.exists():
             delivery_folder.mkdir()
 
         for position in range(1, self.n_positions + 1):
-            mask = (merged_array[:, 4] == position)
-            package_ids = [int(package_id) for package_id in merged_array[mask, 0]]
+            mask = [gene == position for gene in best_genome]
+            package_ids = [int(package_id) for package_id in self.data[mask, 0]]
             
             distribution_path = delivery_folder / f'delivery_{position}.txt'
             with distribution_path.open('w') as f:
@@ -218,21 +210,19 @@ class Evaluator:
         -------
         int
         '''
-        load_array = np.array(genome).reshape(len(genome), -1)
-        merged_array = np.hstack((self.data, load_array))
 
         score = 0
         for position in range(1, self.n_positions + 1):
-            position_mask = (merged_array[:, 4] == position)
-            overload = sum(merged_array[position_mask, 1]) - self.position_capacity
+            position_mask = [gene == position for gene in genome]
+            overload = sum(self.data[position_mask, 1]) - self.position_capacity
             if overload > 0:
                 return 0
         
-        loaded_mask = (merged_array[:, 4] != 0)
-        overdue_mask = (merged_array[:, 3] < 0)
+        delivery_mask = [gene != 0 for gene in genome]
+        overdue_mask = (self.data[:, 3] < 0)
 
-        score += sum(merged_array[loaded_mask, 2])
+        score += sum(self.data[delivery_mask, 2])
         score += sum(deadline ** 2 for deadline
-                     in merged_array[loaded_mask & overdue_mask, 3])
+                     in self.data[delivery_mask & overdue_mask, 3])
         
         return int(score)
