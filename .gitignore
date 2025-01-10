@@ -1,5 +1,5 @@
 # Custom
-lagerstatus.csv
+delivery*.txt
 temp.*
 
 # Byte-compiled / optimized / DLL files
