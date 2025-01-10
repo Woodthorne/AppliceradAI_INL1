@@ -35,37 +35,35 @@ def main(filename: str = 'lagerstatus.csv',
             vocal = vocal,
             max_minutes= MAX_MINUTES
         )
+        
+    result = evaluator.population[0]
     
-    best_load = evaluator.population[0]
-    load_array = np.array(best_load).reshape(len(best_load), -1)
-    merged_array = np.hstack((evaluator.data, load_array))
-    
-    loaded_mask = (merged_array[:, 4] != 0)
-    remaining_mask = (merged_array[:, 4] == 0)
-    penalty_mask = (merged_array[:, 3] < 0)
+    delivery_mask = [position != 0 for position in result]
+    warehouse_mask = [position == 0 for position in result]
+    overdue_mask = (data_array[:, 3] < 0)
     
     if vocal:
         print('==================================================')
         delivery_packages = 0
         for truck_id in range(1, evaluator.n_positions + 1):
-            truck_mask = (merged_array[:, 4] == truck_id)   
-            truck_packages = merged_array[truck_mask, 1]
-            truck_weight = sum(truck_packages)
-            delivery_packages += len(truck_packages)
+            truck_mask = [position == truck_id for position in result]
+            truck_packages = len(data_array[truck_mask])
+            truck_weight = sum(data_array[truck_mask, 1])
+            delivery_packages += truck_packages
 
             message = f'Truck #{truck_id}: '
             message += f'{truck_weight:.2f}/{TRUCK_CAPACITY} loaded weight, '
-            message += f'{len(truck_packages)} packages.'
+            message += f'{truck_packages} packages.'
             print(message)
         print('==================================================')
     
-    delivery_earnings = sum(merged_array[loaded_mask, 2])
+    delivery_earnings = sum(data_array[delivery_mask, 2])
     warehouse_penalty = sum(deadline ** 2 for deadline in
-                            merged_array[penalty_mask & remaining_mask, 3]
+                            data_array[overdue_mask & warehouse_mask, 3]
                             if deadline < 0)
-    warehouse_packages = len(merged_array[remaining_mask])
-    warehouse_earnings = sum(merged_array[remaining_mask, 2])
-            
+    warehouse_packages = len(data_array[warehouse_mask])
+    warehouse_earnings = sum(data_array[warehouse_mask, 2])
+                
     print(f'Earnings in delivery: {delivery_earnings:.2f}')
     print(f'Penalty in warehouse: {warehouse_penalty:.2f}')
     print(f'Packages in warehouse: {warehouse_packages:.2f}')
@@ -85,8 +83,8 @@ def main(filename: str = 'lagerstatus.csv',
             var = np.var(stat['data'])
             ax[index].hist(stat['data'])
             ax[index].set_title(stat['name'])
-            ax[index].axvline(x=mean, color='k', label=f'Mean')
-            ax[index].axvline(x=mean-std, color='k', linestyle='dotted', label=f'Standard deviation')
+            ax[index].axvline(x=mean, color='k', label=f'Mean: {mean:.2f}')
+            ax[index].axvline(x=mean-std, color='k', linestyle='dotted', label=f'Standard deviation: {std:.2f}')
             ax[index].axvline(x=mean+std, color='k', linestyle='dotted')
             ax[index].plot([], [], ' ', label=f'Variance: {var:.2f}')
             ax[index].legend(loc='upper left')
