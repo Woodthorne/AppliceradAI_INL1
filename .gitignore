@@ -1,5 +1,5 @@
 # Custom
-delivery*.txt
+deliveries/
 temp.*
 
 # Byte-compiled / optimized / DLL files
