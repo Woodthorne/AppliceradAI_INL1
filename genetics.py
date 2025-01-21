@@ -42,7 +42,6 @@ class Evaluator:
             Total summed capacity of all trucks.
         population: list[tuple[int]]
             List of genomes of the most recent generation. Start empty.
-            Evaluator.evaluate.
         best_fitness_scores: list[float]
             List of best fitness scores found over evaluation
             generations. Starts empty.
