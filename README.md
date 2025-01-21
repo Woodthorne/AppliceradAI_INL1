@@ -80,7 +80,7 @@ Evaluates the fitness of a genome.
 
 ## main.py
 ### main
-Example use of the genetics.Evaluator class. Does not show off the 
+Example use of the genetics.Evaluator class. Does not show off the Evaluator.save_results_to_file method.
 
 ## seeder.py
 ### seed_packages
