@@ -18,13 +18,34 @@ class Evaluator:
         Parameters
         ----------
         data_array: numpy.ndarray
-            Numpy array containing package information with columns _, weight, earnings, deadline.
+            Numpy array containing package information with columns _,
+            weight, earnings, deadline.
         n_positions: int, default: 10
             Number of trucks to pack into.
         position_capacity: int, default: 100
             Maximum weight allowed per truck.
         file_path: Path
             Path-object pointing to file to be read.
+        
+        Properties
+        ----------
+        data: numpy.ndarray
+            Numpy array containing package information with columns _,
+            weight, earnings, deadline.
+        n_positions: int
+            Number of trucks to pack into.
+        position_capacity: int
+            Maximum weight allowed per truck.
+        _total_weight: int
+            Total summed weight of all packages.
+        _total_capacity: int
+            Total summed capacity of all trucks.
+        population: list[tuple[int]]
+            List of genomes of the most recent generation. Start empty.
+            Evaluator.evaluate.
+        best_fitness_scores: list[float]
+            List of best fitness scores found over evaluation
+            generations. Starts empty.
         '''
 
         self.data = data_array
